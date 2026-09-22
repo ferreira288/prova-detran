@@ -3,140 +3,64 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DETRAN RP — Prova Teórica</title>
+<title>FRONTEIRA — Prova Teórica</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#09090b;color:#fff;font-family:Arial,sans-serif;padding:18px}
 .box{max-width:850px;margin:auto;background:#141416;border:1px solid #29292e;border-radius:16px;padding:22px;box-shadow:0 15px 50px #0008}
-h1{text-align:center;color:#a855f7;margin:0 0 6px}
-.sub{text-align:center;color:#aaa;margin-bottom:20px}
+h1{text-align:center;color:#a855f7;margin:0 0 6px}.sub{text-align:center;color:#aaa;margin-bottom:20px}
 .name{width:100%;padding:13px;border-radius:9px;border:1px solid #333;background:#0d0d0f;color:#fff;margin-bottom:15px}
-.q{background:#101012;border:1px solid #29292e;border-radius:12px;padding:16px;margin:13px 0}
-.q h3{font-size:16px;margin:0 0 12px}
-.op{display:block;background:#1c1c20;padding:10px;border-radius:8px;margin:6px 0;cursor:pointer}
-.op:hover{background:#28282d}
-button{width:100%;padding:15px;margin-top:18px;border:0;border-radius:10px;background:#a855f7;color:white;font-weight:bold;font-size:16px}
-.result{display:none;text-align:center;margin-top:18px;padding:18px;border-radius:10px}
-.ok{background:#064e3b;border:1px solid #10b981}
-.bad{background:#4c0519;border:1px solid #f43f5e}
-.info{font-size:12px;color:#888;margin-top:10px}
+.timer{position:sticky;top:10px;z-index:2;text-align:center;background:#1c1c20;border:1px solid #a855f7;border-radius:9px;padding:11px;margin-bottom:15px;font-weight:bold;color:#fff}.timer.urgent{color:#fb7185;border-color:#f43f5e}
+.q{background:#101012;border:1px solid #29292e;border-radius:12px;padding:16px;margin:13px 0}.q h3{font-size:16px;margin:0 0 12px}
+.op{display:block;background:#1c1c20;padding:10px;border-radius:8px;margin:6px 0;cursor:pointer}.op:hover{background:#28282d}
+button{width:100%;padding:15px;margin-top:18px;border:0;border-radius:10px;background:#a855f7;color:white;font-weight:bold;font-size:16px;cursor:pointer}.result{display:none;text-align:center;margin-top:18px;padding:18px;border-radius:10px}.ok{background:#064e3b;border:1px solid #10b981}.bad{background:#4c0519;border:1px solid #f43f5e}.info{font-size:12px;color:#888;margin-top:10px}
 </style>
 </head>
 <body>
 <div class="box">
-<h1>DETRAN RP</h1>
+<h1>FRONTEIRA</h1>
 <div class="sub">PROVA TEÓRICA — CATEGORIA B • NÍVEL AVANÇADO</div>
 <input id="nome" class="name" placeholder="Digite seu nome ou ID do RP" maxlength="50">
+<div id="timer" class="timer">⏱️ Tempo restante: 20:00</div>
 <div id="prova"></div>
-<button onclick="corrigir()">FINALIZAR PROVA</button>
+<button id="finalizar" onclick="corrigir(false)">FINALIZAR PROVA</button>
 <div id="resultado" class="result"></div>
-<div class="info">A aprovação exige 14 de 20 questões.</div>
+<div class="info">A aprovação exige 14 de 20 questões. Saídas da página são registradas automaticamente.</div>
 </div>
-
 <script>
 const WEBHOOK_URL="COLE_SEU_WEBHOOK_AQUI";
-
+const DURACAO=20*60*1000;
+let finalizada=false, saidas=0, inicio=Date.now(), intervalo;
 const qs=[
-["Você se aproxima de um cruzamento sem semáforo. Há um veículo chegando pela sua direita e outro pela esquerda. Em uma situação normal, qual conduta é mais adequada?","Acelerar para passar antes de todos|Dar preferência ao veículo que vem pela direita, observando as condições de segurança|Dar preferência sempre ao veículo da esquerda|Parar obrigatoriamente por 30 segundos",1],
-
-["Durante a condução, você percebe que o veículo à sua frente freia repentinamente. Qual fator ajuda mais a evitar uma colisão traseira?","Manter distância de segurança e atenção às condições da via|Dirigir sempre com o pé apoiado no acelerador|Usar o pisca-alerta enquanto estiver em movimento|Aproximar-se do veículo da frente para reduzir o espaço",0],
-
-["Você pretende mudar de faixa, mas existe um veículo no ponto cego do seu retrovisor. O que deve fazer?","Mudar de faixa rapidamente antes que ele avance|Sinalizar, verificar novamente e aguardar uma oportunidade segura|Buzinar e fazer a mudança mesmo assim|Frear bruscamente na faixa atual",1],
-
-["Em uma descida longa, qual comportamento é mais adequado para manter o controle do veículo?","Desligar o motor para economizar combustível|Usar uma marcha adequada e controlar a velocidade sem depender apenas dos freios|Colocar o câmbio em neutro e acelerar quando necessário|Usar o freio de estacionamento continuamente",1],
-
-["Em uma via molhada, o veículo começa a perder aderência. Qual atitude é mais segura?","Fazer movimentos bruscos no volante|Reduzir a velocidade de forma progressiva e evitar manobras bruscas|Acelerar para recuperar a estabilidade imediatamente|Puxar o freio de estacionamento",1],
-
-["Você está sendo seguido muito de perto por outro veículo. Qual é a melhor reação?","Frear de propósito para assustar o outro motorista|Manter a condução segura, evitar confronto e, se possível, permitir que ele ultrapasse com segurança|Acelerar acima do limite para abrir distância|Fazer zigue-zague para impedir a ultrapassagem",1],
-
-["Ao iniciar uma ultrapassagem, você percebe que a distância disponível não é suficiente para concluir a manobra com segurança. O que fazer?","Iniciar mesmo assim e confiar na reação dos outros|Desistir da manobra e permanecer em condição segura|Usar o acostamento para terminar mais rápido|Buzinar continuamente e seguir",1],
-
-["Você chega a uma faixa de pedestres e um pedestre demonstra claramente intenção de atravessar. Qual conduta é mais segura?","Acelerar antes que ele entre na faixa|Reduzir a velocidade e dar passagem conforme as condições de segurança|Buzinar para obrigá-lo a esperar|Passar pelo lado do pedestre sem reduzir",1],
-
-["Em uma situação de baixa visibilidade causada por chuva intensa, qual medida ajuda a reduzir o risco?","Aumentar a velocidade para sair logo da chuva|Reduzir a velocidade, aumentar a distância e usar a iluminação adequada|Usar somente o pisca-alerta durante toda a viagem|Dirigir colado no veículo da frente para enxergar melhor",1],
-
-["Você percebe que está com sono e dificuldade de manter a atenção. Qual decisão é mais segura?","Aumentar o volume do rádio e continuar|Parar em local seguro e descansar antes de continuar|Acelerar para chegar mais rápido|Usar o celular para se manter distraído",1],
-
-["O veículo à sua frente sinaliza que pretende virar, mas você não tem certeza de qual direção ele seguirá. O que fazer?","Ultrapassar imediatamente pelo lado que parecer livre|Manter distância e aguardar uma situação claramente segura|Buzinar e ultrapassar pela contramão|Acelerar para impedir a conversão",1],
-
-["Ao sair de uma vaga de estacionamento, você tem visão limitada da via. Qual é a atitude mais adequada?","Sair rapidamente para ganhar espaço|Avançar lentamente, verificar os dois sentidos e só prosseguir quando houver segurança|Usar o pisca-alerta e entrar direto na via|Buzinar e assumir que os outros veículos vão parar",1],
-
-["Você está em uma via com limite de velocidade definido e percebe que a pista está muito movimentada. Qual princípio deve orientar sua velocidade?","Manter sempre a velocidade máxima permitida|Adequar a velocidade às condições da via, do trânsito e da visibilidade, respeitando o limite|Dirigir acima do limite para acompanhar o fluxo|Escolher a velocidade apenas pelo veículo da frente",1],
-
-["Ao ouvir a sirene de um veículo de emergência em serviço, você percebe que ele se aproxima por trás. Qual conduta é adequada?","Bloquear a faixa para obrigá-lo a esperar|Facilitar a passagem com segurança, sem realizar manobra brusca|Acelerar para não ser ultrapassado|Parar imediatamente no meio da pista",1],
-
-["Seu veículo apresenta um problema mecânico e precisa ser imobilizado em uma via. Qual é a prioridade?","Deixar o veículo no meio da faixa sem sinalização|Sinalizar a situação e, quando possível, posicionar o veículo em local seguro|Abandonar o veículo com as portas abertas|Desligar todas as luzes para economizar bateria",1],
-
-["Em uma ultrapassagem, depois de passar pelo veículo da frente, quando é adequado retornar à faixa original?","Assim que o para-choque dianteiro passar pelo outro veículo|Quando houver distância suficiente e segurança para retornar sem cortar a trajetória do outro veículo|Somente depois de buzinar três vezes|Imediatamente, mesmo sem espaço suficiente",1],
-
-["Você percebe que o semáforo está amarelo e ainda está a uma distância que permite parar com segurança. O que deve fazer?","Acelerar para tentar passar antes do vermelho|Reduzir e parar de forma segura, quando possível|Ignorar o semáforo se não houver pedestres|Entrar no cruzamento e parar dentro dele",1],
-
-["Em uma curva fechada, qual comportamento oferece maior controle do veículo?","Entrar em alta velocidade e frear no meio da curva|Reduzir a velocidade antes da curva e fazer a trajetória de forma controlada|Usar o freio de estacionamento durante a curva|Fazer a curva ocupando a faixa contrária",1],
-
-["No RP, uma autoridade de trânsito solicita que você encoste para uma fiscalização. Você está em local inadequado para parar imediatamente. O que deve fazer?","Fugir para evitar a fiscalização|Sinalizar e procurar um local seguro para encostar, seguindo a orientação da autoridade|Acelerar e desligar as luzes|Parar no meio da pista sem observar o trânsito",1],
-
-["Você percebe que cometeu um erro de direção e outro jogador começa a provocar você no trânsito. Qual conduta é mais adequada no RP?","Entrar em disputa e realizar manobras perigosas|Manter a direção segura, evitar confronto e seguir as regras de trânsito do servidor|Perseguir o outro veículo para tirar satisfação|Usar o veículo para bloquear a passagem dele",1]
+["Você se aproxima de um cruzamento sem semáforo. Há um veículo chegando pela sua direita. Qual conduta é adequada?",["Acelerar para passar antes de todos","Dar preferência ao veículo que vem pela direita","Parar obrigatoriamente por 30 segundos","Ignorar o cruzamento"],1],
+["O veículo à sua frente freia repentinamente. O que mais ajuda a evitar uma colisão?",["Dirigir sempre com o pé apoiado no acelerador","Manter distância de segurança e atenção","Usar a buzina continuamente","Aproximar-se para enxergar melhor"],1],
+["Você pretende mudar de faixa, mas há um veículo no seu ponto cego. O que fazer?",["Mudar rapidamente antes que ele avance","Sinalizar, verificar novamente e aguardar segurança","Buzinar e mudar mesmo assim","Frear bruscamente na faixa atual"],1],
+["Em uma descida longa, qual comportamento mantém melhor o controle?",["Desligar o motor","Usar marcha adequada e controlar a velocidade","Colocar o câmbio em neutro","Usar apenas o freio de estacionamento"],1],
+["Em uma via molhada, o veículo perde aderência. Qual atitude é mais segura?",["Fazer movimentos bruscos","Reduzir progressivamente e evitar manobras bruscas","Acelerar para recuperar estabilidade","Puxar o freio de estacionamento"],1],
+["Você está sendo seguido muito de perto por outro veículo. Qual a melhor reação?",["Frear de propósito","Manter condução segura e evitar confronto","Acelerar acima do limite","Fazer zigue-zague"],1],
+["A distância disponível não é suficiente para concluir uma ultrapassagem com segurança. O que fazer?",["Iniciar mesmo assim","Desistir e permanecer em condição segura","Buzinar até os outros abrirem espaço","Usar o acostamento"],1],
+["Um pedestre demonstra intenção de atravessar na faixa. Qual conduta é mais segura?",["Acelerar antes que ele entre","Reduzir e dar passagem conforme as condições","Buzinar para ele esperar","Passar pelo lado contrário da faixa"],1],
+["Em chuva intensa e baixa visibilidade, qual medida reduz o risco?",["Aumentar a velocidade","Reduzir velocidade, aumentar distância e usar iluminação adequada","Usar somente o pisca-alerta em movimento","Dirigir colado ao veículo da frente"],1],
+["Você percebe que está com sono e dificuldade de atenção. O que fazer?",["Aumentar o rádio e continuar","Parar em local seguro e descansar","Acelerar para chegar logo","Usar o celular para se distrair"],1],
+["O veículo à frente sinaliza que pretende virar, mas a direção não está clara. O que fazer?",["Ultrapassar imediatamente","Manter distância e aguardar uma situação clara","Acelerar para impedir a conversão","Ultrapassar pela contramão"],1],
+["Ao sair de uma vaga com visão limitada, qual atitude é adequada?",["Sair rapidamente","Avançar lentamente e verificar os dois sentidos","Buzinar e entrar direto na via","Confiar apenas no retrovisor interno"],1],
+["Em uma via movimentada com limite definido, como escolher a velocidade?",["Manter sempre a velocidade máxima","Adequar à via, ao trânsito e à visibilidade, respeitando o limite","Dirigir acima do limite para acompanhar o fluxo","Escolher a velocidade do veículo da frente"],1],
+["Ao ouvir sirene de emergência se aproximando por trás, o que fazer?",["Bloquear a faixa","Facilitar a passagem com segurança","Acelerar para não ser ultrapassado","Parar no meio da pista"],1],
+["Seu veículo tem problema mecânico e precisa ser imobilizado. Qual é a prioridade?",["Deixá-lo no meio da faixa","Sinalizar e posicioná-lo em local seguro quando possível","Abandoná-lo sem sinalização","Desligar todas as luzes"],1],
+["Depois de ultrapassar, quando é adequado retornar à faixa original?",["Assim que o para-choque passar","Quando houver distância e segurança para retornar","Imediatamente, sem olhar","Somente depois de buzinar três vezes"],1],
+["O semáforo está amarelo e é possível parar com segurança. O que fazer?",["Acelerar para passar","Reduzir e parar de forma segura","Ignorar o semáforo","Entrar no cruzamento e parar no meio"],1],
+["Em uma curva fechada, qual comportamento oferece maior controle?",["Entrar em alta velocidade","Reduzir antes da curva e fazer trajetória segura","Frear forte no meio da curva","Invadir a faixa contrária"],1],
+["Uma autoridade solicita que você encoste, mas o local é inadequado para parar imediatamente. O que fazer?",["Fugir","Sinalizar e procurar local seguro seguindo a orientação","Acelerar e desligar as luzes","Parar bloqueando a via"],1],
+["Outro jogador provoca você no trânsito do RP. Qual conduta é mais adequada?",["Entrar em disputa e fazer manobras perigosas","Manter direção segura e seguir as regras do servidor","Perseguir o jogador","Usar o veículo para bloquear a passagem"],1]
 ];
-
 const p=document.getElementById("prova");
-qs.forEach((x,i)=>{
- let d=document.createElement("div");
- d.className="q";
- d.innerHTML=`<h3>${i+1}. ${x[0]}</h3>`+
- x[1].split("|").map((a,j)=>
- `<label class="op"><input type="radio" name="q${i}" value="${j}"> ${String.fromCharCode(65+j)}) ${a}</label>`
- ).join("");
- p.appendChild(d);
-});
-
-async function corrigir(){
- const nome=document.getElementById("nome").value.trim();
- if(!nome){alert("Digite seu nome ou ID do RP.");return}
- let pontos=0,resp=0;
- qs.forEach((x,i)=>{
-   let a=document.querySelector(`input[name=q${i}]:checked`);
-   if(a){resp++;if(+a.value===x[2])pontos++}
- });
- const r=document.getElementById("resultado");
- if(resp<20){
-   r.style.display="block";
-   r.className="result bad";
-   r.innerHTML=`⚠️ Responda todas as 20 questões.<br>${resp}/20 respondidas`;
-   return;
- }
- const aprovado=pontos>=14, pct=Math.round(pontos/20*100);
- r.style.display="block";
- r.className="result "+(aprovado?"ok":"bad");
- r.innerHTML=`${aprovado?"✅ APROVADO":"❌ REPROVADO"}<br><b>${nome}</b><br>${pontos}/20 acertos — ${pct}%`;
-
- const webhook=WEBHOOK_URL;
- if(webhook==="COLE_SEU_WEBHOOK_AQUI"){
-   r.innerHTML+=`<br><small>⚠️ O webhook do Discord ainda não foi configurado.</small>`;
-   return;
- }
-
- try{
-   await fetch(webhook,{
-     method:"POST",
-     headers:{"Content-Type":"application/json"},
-     body:JSON.stringify({
-       username:"DETRAN RP",
-       embeds:[{
-         title:"📋 Resultado da Prova Teórica",
-         color:aprovado?5763719:15548997,
-         fields:[
-           {name:"👤 Candidato",value:nome,inline:true},
-           {name:"📊 Resultado",value:aprovado?"APROVADO":"REPROVADO",inline:true},
-           {name:"🎯 Nota",value:`${pontos}/20 (${pct}%)`,inline:true}
-         ],
-         footer:{text:"DETRAN RP — Prova Avançada"}
-       }]
-     })
-   });
- }catch(e){
-   alert("A prova foi corrigida, mas não foi possível enviar ao Discord. Verifique o webhook.");
- }
-}
+qs.forEach((x,i)=>{const d=document.createElement("div");d.className="q";d.innerHTML=`<h3>${i+1}. ${x[0]}</h3>`+x[1].map((a,j)=>`<label class="op"><input type="radio" name="q${i}" value="${j}"> ${String.fromCharCode(65+j)}) ${a}</label>`).join("");p.appendChild(d)});
+function atualizarTimer(){const restante=Math.max(0,DURACAO-(Date.now()-inicio)),seg=Math.ceil(restante/1000),min=Math.floor(seg/60),s=String(seg%60).padStart(2,"0");const t=document.getElementById("timer");t.textContent=`⏱️ Tempo restante: ${min}:${s}`;if(seg<=60)t.classList.add("urgent");if(restante<=0){clearInterval(intervalo);corrigir(true)}}
+intervalo=setInterval(atualizarTimer,250);atualizarTimer();
+function registrarSaida(){if(!finalizada&&!document.hidden) return;if(!finalizada&&document.hidden){saidas++;}}
+document.addEventListener("visibilitychange",registrarSaida);
+window.addEventListener("blur",()=>{if(!finalizada)saidas++});
+async function corrigir(tempoEsgotado){if(finalizada)return;const nome=document.getElementById("nome").value.trim();if(!nome&&!tempoEsgotado){alert("Digite seu nome ou ID do RP.");return}finalizada=true;clearInterval(intervalo);document.getElementById("finalizar").disabled=true;let pontos=0,resp=0;qs.forEach((x,i)=>{const a=document.querySelector(`input[name=q${i}]:checked`);if(a){resp++;if(+a.value===x[2])pontos++}});const r=document.getElementById("resultado"),aprovado=pontos>=14,pct=Math.round(pontos/20*100);r.style.display="block";r.className="result "+(aprovado?"ok":"bad");r.innerHTML=`${tempoEsgotado?"⏱️ TEMPO ESGOTADO<br>":""}${aprovado?"✅ APROVADO":"❌ REPROVADO"}<br><b>${nome||"Candidato"}</b><br>${pontos}/20 acertos — ${pct}%<br>🚪 Saídas da página: ${saidas}`;document.querySelectorAll("input,button").forEach(el=>el.disabled=true);if(WEBHOOK_URL==="COLE_SEU_WEBHOOK_AQUI"){r.innerHTML+=`<br><small>⚠️ O webhook do Discord ainda não foi configurado.</small>`;return}try{await fetch(WEBHOOK_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:"FRONTEIRA",embeds:[{title:"📋 Resultado da Prova Teórica",color:aprovado?5763719:15548997,fields:[{name:"👤 Candidato",value:nome||"Não informado",inline:true},{name:"📊 Resultado",value:aprovado?"APROVADO":"REPROVADO",inline:true},{name:"🎯 Nota",value:`${pontos}/20 (${pct}%)`,inline:true},{name:"🚪 Saídas da página",value:String(saidas),inline:true}],footer:{text:"FRONTEIRA — Prova Avançada"}}]})})}catch(e){alert("A prova foi corrigida, mas não foi possível enviar ao Discord. Verifique o webhook.")}}
 </script>
 </body>
 </html>
